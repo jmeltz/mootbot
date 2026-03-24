@@ -17,22 +17,30 @@ function getPlayer(guildId) {
   return players.get(guildId) || null;
 }
 
-function getOrCreatePlayer(guildId, voiceChannel, textChannel) {
+async function getOrCreatePlayer(guildId, voiceChannel, textChannel) {
   let gp = players.get(guildId);
 
   if (gp) {
     gp.textChannel = textChannel;
+    if (gp.connection.state.status !== VoiceConnectionStatus.Ready) {
+      try {
+        await entersState(gp.connection, VoiceConnectionStatus.Ready, 20_000);
+      } catch {
+        destroy(guildId);
+        throw new Error('Voice connection lost');
+      }
+    }
     return gp;
   }
 
   const connection = joinVoiceChannel({
     channelId: voiceChannel.id,
     guildId,
+    selfDeaf: true,
     adapterCreator: voiceChannel.guild.voiceAdapterCreator,
   });
 
   const player = createAudioPlayer();
-  connection.subscribe(player);
 
   gp = {
     connection,
@@ -74,7 +82,16 @@ function getOrCreatePlayer(guildId, voiceChannel, textChannel) {
     }
   });
 
+  connection.subscribe(player);
   players.set(guildId, gp);
+
+  try {
+    await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+  } catch {
+    destroy(guildId);
+    throw new Error('Could not join voice channel');
+  }
+
   return gp;
 }
 
@@ -91,7 +108,11 @@ async function playNext(guildId) {
   gp.currentTrack = track;
 
   try {
-    const stream = soundcloud.createAudioStream(track);
+    if (gp.connection.state.status !== VoiceConnectionStatus.Ready) {
+      await entersState(gp.connection, VoiceConnectionStatus.Ready, 20_000);
+    }
+
+    const stream = soundcloud.createAudioStream(track._raw);
     const resource = createAudioResource(stream, {
       inputType: StreamType.Arbitrary,
     });

@@ -5,7 +5,7 @@ process.env.FFMPEG_PATH = process.env.FFMPEG_PATH || require('ffmpeg-static');
 
 const fs = require('fs');
 const path = require('path');
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
@@ -24,6 +24,7 @@ for (const file of fs.readdirSync(commandsDir).filter(f => f.endsWith('.js'))) {
 
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
+  client.user.setActivity('bot.moots.my', { type: ActivityType.Watching });
 
   // Register slash commands
   if (process.env.GUILD_ID) {

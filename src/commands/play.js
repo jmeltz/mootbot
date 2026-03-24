@@ -36,7 +36,7 @@ module.exports = {
         _raw: track,
       };
 
-      player.getOrCreatePlayer(interaction.guildId, voiceChannel, interaction.channel);
+      await player.getOrCreatePlayer(interaction.guildId, voiceChannel, interaction.channel);
       player.enqueue(interaction.guildId, trackInfo);
 
       const { queue } = player.getQueue(interaction.guildId);
